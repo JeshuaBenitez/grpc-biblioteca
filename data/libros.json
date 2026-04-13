@@ -1,0 +1,12 @@
+[
+  { "id": 1, "titulo": "Pedro Páramo", "autor": "Juan Rulfo" },
+  { "id": 2, "titulo": "Aura", "autor": "Carlos Fuentes" },
+  { "id": 3, "titulo": "Los de abajo", "autor": "Mariano Azuela" },
+  { "id": 4, "titulo": "El laberinto de la soledad", "autor": "Octavio Paz" },
+  { "id": 5, "titulo": "Balún Canán", "autor": "Rosario Castellanos" },
+  { "id": 6, "titulo": "La muerte de Artemio Cruz", "autor": "Carlos Fuentes" },
+  { "id": 7, "titulo": "Como agua para chocolate", "autor": "Laura Esquivel" },
+  { "id": 8, "titulo": "Arráncame la vida", "autor": "Ángeles Mastretta" },
+  { "id": 9, "titulo": "Noticias del Imperio", "autor": "Fernando del Paso" },
+  { "id": 10, "titulo": "La región más transparente", "autor": "Carlos Fuentes" }
+]

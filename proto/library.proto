@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package biblioteca;
+
+service BibliotecaService {
+  rpc ConsultarLibro(LibroID) returns (Libro);
+  rpc ListarLibros(Vacio) returns (stream Libro);
+  rpc RegistrarLibros(stream Libro) returns (ResumenRegistro);
+  rpc TransaccionesTiempoReal(stream Transaccion) returns (stream Confirmacion);
+}
+
+message LibroID {
+  int32 id = 1;
+}
+
+message Libro {
+  int32 id = 1;
+  string titulo = 2;
+  string autor = 3;
+}
+
+message Vacio {}
+
+message ResumenRegistro {
+  int32 total_registrados = 1;
+}
+
+message Transaccion {
+  string tipo = 1;
+  int32 id_libro = 2;
+  string usuario = 3;
+}
+
+message Confirmacion {
+  string mensaje = 1;
+}
