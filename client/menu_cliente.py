@@ -142,16 +142,16 @@ def modo_pantalla_publica_tiempo_real(stub):
 
 def modo_lista_tickets_tiempo_real(stub):
     print("\nLista de tickets en tiempo real.")
-    print("Actualizacion automatica cada 2 segundos. Escribe 'exit' y Enter para volver.")
+    print("Actualizacion automatica cada 2 segundos.")
+    print("Presiona Enter para volver al menu principal.")
 
     while True:
         _mostrar_lista_pendientes(stub)
-        print("[Esperando comando: 'exit' para salir | Enter para refrescar ya]", flush=True)
+        print("[Esperando: Enter para salir]", flush=True)
         comando = _leer_comando_timeout(2)
-        if comando == "exit":
+        if comando == "":
             print("Saliendo de lista de tickets...")
             return
-        time.sleep(0.1)
 
 
 def main():
