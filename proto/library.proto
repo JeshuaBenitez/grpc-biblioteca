@@ -1,36 +1,61 @@
 syntax = "proto3";
 
-package biblioteca;
+package soporte;
 
-service BibliotecaService {
-  rpc ConsultarLibro(LibroID) returns (Libro);
-  rpc ListarLibros(Vacio) returns (stream Libro);
-  rpc RegistrarLibros(stream Libro) returns (ResumenRegistro);
-  rpc TransaccionesTiempoReal(stream Transaccion) returns (stream Confirmacion);
+service SoporteTicketsService {
+  rpc CrearTicket(SolicitudTicket) returns (RespuestaTicket);
+  rpc AtenderSiguiente(EscritorioRequest) returns (TicketAsignado);
+  rpc ConsultarPendientes(Vacio) returns (ResumenPendientes);
+  rpc ListarPendientes(Vacio) returns (stream Ticket);
 }
 
-message LibroID {
-  int32 id = 1;
+enum Prioridad {
+  PRIORIDAD_NO_DEFINIDA = 0;
+  BAJA = 1;
+  MEDIA = 2;
+  ALTA = 3;
 }
 
-message Libro {
+message SolicitudTicket {
+  string cliente = 1;
+  string descripcion = 2;
+  Prioridad prioridad = 3;
+}
+
+message Ticket {
   int32 id = 1;
-  string titulo = 2;
-  string autor = 3;
+  string cliente = 2;
+  string descripcion = 3;
+  Prioridad prioridad = 4;
+  string estado = 5;
+  int64 fecha_creacion = 6;
+  int64 fecha_atencion = 7;
 }
 
 message Vacio {}
 
-message ResumenRegistro {
-  int32 total_registrados = 1;
+message RespuestaTicket {
+  int32 ticket_id = 1;
+  string mensaje = 2;
 }
 
-message Transaccion {
-  string tipo = 1;
-  int32 id_libro = 2;
-  string usuario = 3;
+message EscritorioRequest {
+  string escritorio_id = 1;
 }
 
-message Confirmacion {
+message TicketAsignado {
+  bool hay_ticket = 1;
+  string mensaje = 2;
+  Ticket ticket = 3;
+}
+
+message ResumenPendientes {
+  int32 total = 1;
+  int32 bajas = 2;
+  int32 medias = 3;
+  int32 altas = 4;
+}
+
+message EstadoServidor {
   string mensaje = 1;
 }
