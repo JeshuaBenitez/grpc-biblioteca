@@ -34,50 +34,50 @@ class BibliotecaServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.ConsultarLibro = channel.unary_unary(
-                '/biblioteca.BibliotecaService/ConsultarLibro',
-                request_serializer=library__pb2.LibroID.SerializeToString,
-                response_deserializer=library__pb2.Libro.FromString,
+        self.ConsultarTicket = channel.unary_unary(
+                '/biblioteca.BibliotecaService/ConsultarTicket',
+                request_serializer=library__pb2.TicketID.SerializeToString,
+                response_deserializer=library__pb2.Ticket.FromString,
                 _registered_method=True)
-        self.ListarLibros = channel.unary_stream(
-                '/biblioteca.BibliotecaService/ListarLibros',
+        self.ListarTickets = channel.unary_stream(
+                '/biblioteca.BibliotecaService/ListarTickets',
                 request_serializer=library__pb2.Vacio.SerializeToString,
-                response_deserializer=library__pb2.Libro.FromString,
+                response_deserializer=library__pb2.Ticket.FromString,
                 _registered_method=True)
-        self.RegistrarLibros = channel.stream_unary(
-                '/biblioteca.BibliotecaService/RegistrarLibros',
-                request_serializer=library__pb2.Libro.SerializeToString,
+        self.GenerarTickets = channel.stream_unary(
+                '/biblioteca.BibliotecaService/GenerarTickets',
+                request_serializer=library__pb2.Ticket.SerializeToString,
                 response_deserializer=library__pb2.ResumenRegistro.FromString,
                 _registered_method=True)
-        self.TransaccionesTiempoReal = channel.stream_stream(
-                '/biblioteca.BibliotecaService/TransaccionesTiempoReal',
-                request_serializer=library__pb2.Transaccion.SerializeToString,
-                response_deserializer=library__pb2.Confirmacion.FromString,
+        self.AtenderTicketsTiempoReal = channel.stream_stream(
+                '/biblioteca.BibliotecaService/AtenderTicketsTiempoReal',
+                request_serializer=library__pb2.SolicitudEscritorio.SerializeToString,
+                response_deserializer=library__pb2.ConfirmacionAtencion.FromString,
                 _registered_method=True)
 
 
 class BibliotecaServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def ConsultarLibro(self, request, context):
+    def ConsultarTicket(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def ListarLibros(self, request, context):
+    def ListarTickets(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def RegistrarLibros(self, request_iterator, context):
+    def GenerarTickets(self, request_iterator, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def TransaccionesTiempoReal(self, request_iterator, context):
+    def AtenderTicketsTiempoReal(self, request_iterator, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -86,25 +86,25 @@ class BibliotecaServiceServicer(object):
 
 def add_BibliotecaServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'ConsultarLibro': grpc.unary_unary_rpc_method_handler(
-                    servicer.ConsultarLibro,
-                    request_deserializer=library__pb2.LibroID.FromString,
-                    response_serializer=library__pb2.Libro.SerializeToString,
+            'ConsultarTicket': grpc.unary_unary_rpc_method_handler(
+                    servicer.ConsultarTicket,
+                    request_deserializer=library__pb2.TicketID.FromString,
+                    response_serializer=library__pb2.Ticket.SerializeToString,
             ),
-            'ListarLibros': grpc.unary_stream_rpc_method_handler(
-                    servicer.ListarLibros,
+            'ListarTickets': grpc.unary_stream_rpc_method_handler(
+                    servicer.ListarTickets,
                     request_deserializer=library__pb2.Vacio.FromString,
-                    response_serializer=library__pb2.Libro.SerializeToString,
+                    response_serializer=library__pb2.Ticket.SerializeToString,
             ),
-            'RegistrarLibros': grpc.stream_unary_rpc_method_handler(
-                    servicer.RegistrarLibros,
-                    request_deserializer=library__pb2.Libro.FromString,
+            'GenerarTickets': grpc.stream_unary_rpc_method_handler(
+                    servicer.GenerarTickets,
+                    request_deserializer=library__pb2.Ticket.FromString,
                     response_serializer=library__pb2.ResumenRegistro.SerializeToString,
             ),
-            'TransaccionesTiempoReal': grpc.stream_stream_rpc_method_handler(
-                    servicer.TransaccionesTiempoReal,
-                    request_deserializer=library__pb2.Transaccion.FromString,
-                    response_serializer=library__pb2.Confirmacion.SerializeToString,
+            'AtenderTicketsTiempoReal': grpc.stream_stream_rpc_method_handler(
+                    servicer.AtenderTicketsTiempoReal,
+                    request_deserializer=library__pb2.SolicitudEscritorio.FromString,
+                    response_serializer=library__pb2.ConfirmacionAtencion.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -118,7 +118,7 @@ class BibliotecaService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def ConsultarLibro(request,
+    def ConsultarTicket(request,
             target,
             options=(),
             channel_credentials=None,
@@ -131,9 +131,9 @@ class BibliotecaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/biblioteca.BibliotecaService/ConsultarLibro',
-            library__pb2.LibroID.SerializeToString,
-            library__pb2.Libro.FromString,
+            '/biblioteca.BibliotecaService/ConsultarTicket',
+            library__pb2.TicketID.SerializeToString,
+            library__pb2.Ticket.FromString,
             options,
             channel_credentials,
             insecure,
@@ -145,7 +145,7 @@ class BibliotecaService(object):
             _registered_method=True)
 
     @staticmethod
-    def ListarLibros(request,
+    def ListarTickets(request,
             target,
             options=(),
             channel_credentials=None,
@@ -158,9 +158,9 @@ class BibliotecaService(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/biblioteca.BibliotecaService/ListarLibros',
+            '/biblioteca.BibliotecaService/ListarTickets',
             library__pb2.Vacio.SerializeToString,
-            library__pb2.Libro.FromString,
+            library__pb2.Ticket.FromString,
             options,
             channel_credentials,
             insecure,
@@ -172,7 +172,7 @@ class BibliotecaService(object):
             _registered_method=True)
 
     @staticmethod
-    def RegistrarLibros(request_iterator,
+    def GenerarTickets(request_iterator,
             target,
             options=(),
             channel_credentials=None,
@@ -185,8 +185,8 @@ class BibliotecaService(object):
         return grpc.experimental.stream_unary(
             request_iterator,
             target,
-            '/biblioteca.BibliotecaService/RegistrarLibros',
-            library__pb2.Libro.SerializeToString,
+            '/biblioteca.BibliotecaService/GenerarTickets',
+            library__pb2.Ticket.SerializeToString,
             library__pb2.ResumenRegistro.FromString,
             options,
             channel_credentials,
@@ -199,7 +199,7 @@ class BibliotecaService(object):
             _registered_method=True)
 
     @staticmethod
-    def TransaccionesTiempoReal(request_iterator,
+    def AtenderTicketsTiempoReal(request_iterator,
             target,
             options=(),
             channel_credentials=None,
@@ -212,9 +212,9 @@ class BibliotecaService(object):
         return grpc.experimental.stream_stream(
             request_iterator,
             target,
-            '/biblioteca.BibliotecaService/TransaccionesTiempoReal',
-            library__pb2.Transaccion.SerializeToString,
-            library__pb2.Confirmacion.FromString,
+            '/biblioteca.BibliotecaService/AtenderTicketsTiempoReal',
+            library__pb2.SolicitudEscritorio.SerializeToString,
+            library__pb2.ConfirmacionAtencion.FromString,
             options,
             channel_credentials,
             insecure,

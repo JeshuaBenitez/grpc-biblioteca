@@ -3,20 +3,22 @@ syntax = "proto3";
 package biblioteca;
 
 service BibliotecaService {
-  rpc ConsultarLibro(LibroID) returns (Libro);
-  rpc ListarLibros(Vacio) returns (stream Libro);
-  rpc RegistrarLibros(stream Libro) returns (ResumenRegistro);
-  rpc TransaccionesTiempoReal(stream Transaccion) returns (stream Confirmacion);
+  rpc ConsultarTicket(TicketID) returns (Ticket);
+  rpc ListarTickets(Vacio) returns (stream Ticket);
+  rpc GenerarTickets(stream Ticket) returns (ResumenRegistro);
+  rpc AtenderTicketsTiempoReal(stream SolicitudEscritorio) returns (stream ConfirmacionAtencion);
 }
 
-message LibroID {
+message TicketID {
   int32 id = 1;
 }
 
-message Libro {
+message Ticket {
   int32 id = 1;
-  string titulo = 2;
-  string autor = 3;
+  string cliente = 2;
+  string problema = 3;
+  string idioma = 4;
+  bool atendido = 5;
 }
 
 message Vacio {}
@@ -25,12 +27,11 @@ message ResumenRegistro {
   int32 total_registrados = 1;
 }
 
-message Transaccion {
-  string tipo = 1;
-  int32 id_libro = 2;
-  string usuario = 3;
+message SolicitudEscritorio {
+  string escritorio = 1;
+  string idioma = 2;
 }
 
-message Confirmacion {
+message ConfirmacionAtencion {
   string mensaje = 1;
 }

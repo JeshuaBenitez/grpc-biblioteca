@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "cliente": "Gero",
+    "problema": "No puede ingresar",
+    "idioma": "es",
+    "atendido": true
+  },
+  {
+    "id": 2,
+    "cliente": "Keylor",
+    "problema": "Password reset",
+    "idioma": "en",
+    "atendido": false
+  },
+  {
+    "id": 3,
+    "cliente": "Marie",
+    "problema": "Compte bloqué",
+    "idioma": "fr",
+    "atendido": false
+  }
+]

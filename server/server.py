@@ -10,28 +10,29 @@ import library_pb2_grpc
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LIBROS_PATH = os.path.normpath(os.path.join(BASE_DIR, "../data/libros.json"))
+TICKETS_PATH = os.path.normpath(os.path.join(BASE_DIR, "../data/tickets.json"))
 
 lock = threading.Lock()
+IDIOMAS_VALIDOS = {"es", "en", "fr"}
 
 
-def cargar_libros() -> dict[int, dict]:
+def cargar_tickets() -> dict[int, dict]:
     """Carga el JSON y lo convierte a un diccionario indexado por id."""
-    if not os.path.exists(LIBROS_PATH):
+    if not os.path.exists(TICKETS_PATH):
         return {}
 
     with lock:
-        with open(LIBROS_PATH, "r", encoding="utf-8") as f:
-            libros_lista = json.load(f)
+        with open(TICKETS_PATH, "r", encoding="utf-8") as f:
+            tickets_lista = json.load(f)
 
-    return {libro["id"]: libro for libro in libros_lista}
+    return {ticket["id"]: ticket for ticket in tickets_lista}
 
 
-def guardar_libros(libros_dict: dict[int, dict]) -> None:
+def guardar_tickets(tickets_dict: dict[int, dict]) -> None:
     """Guarda el diccionario en el JSON."""
     with lock:
-        with open(LIBROS_PATH, "w", encoding="utf-8") as f:
-            json.dump(list(libros_dict.values()), f, indent=2, ensure_ascii=False)
+        with open(TICKETS_PATH, "w", encoding="utf-8") as f:
+            json.dump(list(tickets_dict.values()), f, indent=2, ensure_ascii=False)
 
 
 def log_operacion(mensaje: str) -> None:
@@ -39,70 +40,113 @@ def log_operacion(mensaje: str) -> None:
 
 
 class BibliotecaServiceServicer(library_pb2_grpc.BibliotecaServiceServicer):
-    def ConsultarLibro(self, request, context):
-        """Unary RPC: recibe un ID y devuelve un libro."""
-        libros = cargar_libros()
-        libro = libros.get(request.id)
+    def ConsultarTicket(self, request, context):
+        """Unary RPC: recibe un ID y devuelve un ticket."""
+        tickets = cargar_tickets()
+        ticket = tickets.get(request.id)
 
-        if libro is None:
-            log_operacion(f"Consulta fallida para libro ID {request.id}")
+        if ticket is None:
+            log_operacion(f"Consulta fallida para ticket ID {request.id}")
             context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details("Libro no encontrado")
-            return library_pb2.Libro()
+            context.set_details("Ticket no encontrado")
+            return library_pb2.Ticket()
 
-        log_operacion(f"Consulta de libro ID {request.id}")
-        return library_pb2.Libro(
-            id=libro["id"],
-            titulo=libro["titulo"],
-            autor=libro["autor"],
+        log_operacion(f"Consulta de ticket ID {request.id}")
+        return library_pb2.Ticket(
+            id=ticket["id"],
+            cliente=ticket["cliente"],
+            problema=ticket["problema"],
+            idioma=ticket["idioma"],
+            atendido=ticket.get("atendido", False),
         )
 
-    def ListarLibros(self, request, context):
-        """Server Streaming RPC: envía todos los libros uno por uno."""
-        libros = cargar_libros()
+    def ListarTickets(self, request, context):
+        """Server Streaming RPC: envía todos los tickets uno por uno."""
+        tickets = cargar_tickets()
 
-        for libro in libros.values():
-            log_operacion(f"Enviando libro ID {libro['id']}")
-            yield library_pb2.Libro(
-                id=libro["id"],
-                titulo=libro["titulo"],
-                autor=libro["autor"],
+        for ticket in tickets.values():
+            log_operacion(f"Enviando ticket ID {ticket['id']}")
+            yield library_pb2.Ticket(
+                id=ticket["id"],
+                cliente=ticket["cliente"],
+                problema=ticket["problema"],
+                idioma=ticket["idioma"],
+                atendido=ticket.get("atendido", False),
             )
 
-    def RegistrarLibros(self, request_iterator, context):
-        """Client Streaming RPC: recibe varios libros y responde con un resumen."""
-        libros = cargar_libros()
+    def GenerarTickets(self, request_iterator, context):
+        """Client Streaming RPC: recibe varios tickets y responde con un resumen."""
+        tickets = cargar_tickets()
         total = 0
 
-        for libro in request_iterator:
-            libros[libro.id] = {
-                "id": libro.id,
-                "titulo": libro.titulo,
-                "autor": libro.autor,
+        for ticket in request_iterator:
+            idioma = ticket.idioma.strip().lower()
+
+            if idioma not in IDIOMAS_VALIDOS:
+                log_operacion(f"Ticket rechazado ID {ticket.id}: idioma inválido '{idioma}'")
+                continue
+
+            tickets[ticket.id] = {
+                "id": ticket.id,
+                "cliente": ticket.cliente,
+                "problema": ticket.problema,
+                "idioma": idioma,
+                "atendido": False,
             }
             total += 1
-            log_operacion(f"Libro registrado ID {libro.id} - {libro.titulo}")
+            log_operacion(
+                f"Ticket registrado ID {ticket.id} - Cliente: {ticket.cliente} - Idioma: {idioma}"
+            )
 
-        guardar_libros(libros)
+        guardar_tickets(tickets)
 
         return library_pb2.ResumenRegistro(total_registrados=total)
 
-    def TransaccionesTiempoReal(self, request_iterator, context):
-        """Bidirectional Streaming RPC: recibe transacciones y responde confirmaciones."""
-        for transaccion in request_iterator:
-            tipo = transaccion.tipo.strip().lower()
-            id_libro = transaccion.id_libro
-            usuario = transaccion.usuario.strip()
+    def AtenderTicketsTiempoReal(self, request_iterator, context):
+        """
+        Bidirectional Streaming RPC:
+        cada escritorio solicita atención por idioma y el servidor entrega
+        solo tickets de ese idioma.
+        """
+        for solicitud in request_iterator:
+            escritorio = solicitud.escritorio.strip()
+            idioma = solicitud.idioma.strip().lower()
 
-            if tipo == "prestamo":
-                mensaje = f"{usuario} ha tomado prestado el libro {id_libro}"
-            elif tipo == "devolucion":
-                mensaje = f"{usuario} ha devuelto el libro {id_libro}"
+            if idioma not in IDIOMAS_VALIDOS:
+                mensaje = (
+                    f"Escritorio {escritorio}: idioma inválido '{idioma}'. "
+                    f"Use es, en o fr."
+                )
+                log_operacion(mensaje)
+                yield library_pb2.ConfirmacionAtencion(mensaje=mensaje)
+                continue
+
+            tickets = cargar_tickets()
+            ticket_encontrado = None
+
+            for ticket_id, ticket in tickets.items():
+                if (
+                    ticket["idioma"].strip().lower() == idioma
+                    and not ticket.get("atendido", False)
+                ):
+                    ticket_encontrado = ticket
+                    tickets[ticket_id]["atendido"] = True
+                    guardar_tickets(tickets)
+                    break
+
+            if ticket_encontrado:
+                mensaje = (
+                    f"Escritorio {escritorio} atendió ticket {ticket_encontrado['id']} "
+                    f"de {ticket_encontrado['cliente']} "
+                    f"(idioma: {ticket_encontrado['idioma']}, problema: {ticket_encontrado['problema']})"
+                )
             else:
-                mensaje = f"Transacción desconocida para el libro {id_libro}"
+                mensaje = (
+                    f"Escritorio {escritorio}: no hay tickets disponibles para el idioma '{idioma}'"
+                )
 
             log_operacion(mensaje)
-            yield library_pb2.Confirmacion(mensaje=mensaje)
+            yield library_pb2.ConfirmacionAtencion(mensaje=mensaje)
 
 
 def servir():
@@ -114,7 +158,7 @@ def servir():
 
     servidor.add_insecure_port("[::]:50052")
     servidor.start()
-    print("Servidor Biblioteca gRPC escuchando en puerto 50052...")
+    print("Servidor Call Center gRPC escuchando en puerto 50052...")
     servidor.wait_for_termination()
 
 

@@ -24,25 +24,25 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rlibrary.proto\x12\nbiblioteca\"\x15\n\x07LibroID\x12\n\n\x02id\x18\x01 \x01(\x05\"2\n\x05Libro\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0e\n\x06titulo\x18\x02 \x01(\t\x12\r\n\x05\x61utor\x18\x03 \x01(\t\"\x07\n\x05Vacio\",\n\x0fResumenRegistro\x12\x19\n\x11total_registrados\x18\x01 \x01(\x05\">\n\x0bTransaccion\x12\x0c\n\x04tipo\x18\x01 \x01(\t\x12\x10\n\x08id_libro\x18\x02 \x01(\x05\x12\x0f\n\x07usuario\x18\x03 \x01(\t\"\x1f\n\x0c\x43onfirmacion\x12\x0f\n\x07mensaje\x18\x01 \x01(\t2\x9c\x02\n\x11\x42ibliotecaService\x12\x38\n\x0e\x43onsultarLibro\x12\x13.biblioteca.LibroID\x1a\x11.biblioteca.Libro\x12\x36\n\x0cListarLibros\x12\x11.biblioteca.Vacio\x1a\x11.biblioteca.Libro0\x01\x12\x43\n\x0fRegistrarLibros\x12\x11.biblioteca.Libro\x1a\x1b.biblioteca.ResumenRegistro(\x01\x12P\n\x17TransaccionesTiempoReal\x12\x17.biblioteca.Transaccion\x1a\x18.biblioteca.Confirmacion(\x01\x30\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rlibrary.proto\x12\nbiblioteca\"\x16\n\x08TicketID\x12\n\n\x02id\x18\x01 \x01(\x05\"Y\n\x06Ticket\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0f\n\x07\x63liente\x18\x02 \x01(\t\x12\x10\n\x08problema\x18\x03 \x01(\t\x12\x0e\n\x06idioma\x18\x04 \x01(\t\x12\x10\n\x08\x61tendido\x18\x05 \x01(\x08\"\x07\n\x05Vacio\",\n\x0fResumenRegistro\x12\x19\n\x11total_registrados\x18\x01 \x01(\x05\"9\n\x13SolicitudEscritorio\x12\x12\n\nescritorio\x18\x01 \x01(\t\x12\x0e\n\x06idioma\x18\x02 \x01(\t\"\'\n\x14\x43onfirmacionAtencion\x12\x0f\n\x07mensaje\x18\x01 \x01(\t2\xb2\x02\n\x11\x42ibliotecaService\x12;\n\x0f\x43onsultarTicket\x12\x14.biblioteca.TicketID\x1a\x12.biblioteca.Ticket\x12\x38\n\rListarTickets\x12\x11.biblioteca.Vacio\x1a\x12.biblioteca.Ticket0\x01\x12\x43\n\x0eGenerarTickets\x12\x12.biblioteca.Ticket\x1a\x1b.biblioteca.ResumenRegistro(\x01\x12\x61\n\x18\x41tenderTicketsTiempoReal\x12\x1f.biblioteca.SolicitudEscritorio\x1a .biblioteca.ConfirmacionAtencion(\x01\x30\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'library_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_LIBROID']._serialized_start=29
-  _globals['_LIBROID']._serialized_end=50
-  _globals['_LIBRO']._serialized_start=52
-  _globals['_LIBRO']._serialized_end=102
-  _globals['_VACIO']._serialized_start=104
-  _globals['_VACIO']._serialized_end=111
-  _globals['_RESUMENREGISTRO']._serialized_start=113
-  _globals['_RESUMENREGISTRO']._serialized_end=157
-  _globals['_TRANSACCION']._serialized_start=159
-  _globals['_TRANSACCION']._serialized_end=221
-  _globals['_CONFIRMACION']._serialized_start=223
-  _globals['_CONFIRMACION']._serialized_end=254
-  _globals['_BIBLIOTECASERVICE']._serialized_start=257
-  _globals['_BIBLIOTECASERVICE']._serialized_end=541
+  _globals['_TICKETID']._serialized_start=29
+  _globals['_TICKETID']._serialized_end=51
+  _globals['_TICKET']._serialized_start=53
+  _globals['_TICKET']._serialized_end=142
+  _globals['_VACIO']._serialized_start=144
+  _globals['_VACIO']._serialized_end=151
+  _globals['_RESUMENREGISTRO']._serialized_start=153
+  _globals['_RESUMENREGISTRO']._serialized_end=197
+  _globals['_SOLICITUDESCRITORIO']._serialized_start=199
+  _globals['_SOLICITUDESCRITORIO']._serialized_end=256
+  _globals['_CONFIRMACIONATENCION']._serialized_start=258
+  _globals['_CONFIRMACIONATENCION']._serialized_end=297
+  _globals['_BIBLIOTECASERVICE']._serialized_start=300
+  _globals['_BIBLIOTECASERVICE']._serialized_end=606
 # @@protoc_insertion_point(module_scope)

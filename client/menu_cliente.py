@@ -3,92 +3,98 @@ import library_pb2
 import library_pb2_grpc
 
 
-def consultar_libro(stub):
+IDIOMAS_VALIDOS = {"es", "en", "fr"}
+
+
+def consultar_ticket(stub):
     try:
-        id_libro = int(input("ID del libro a consultar: "))
-        respuesta = stub.ConsultarLibro(library_pb2.LibroID(id=id_libro))
-        print(f"Título: {respuesta.titulo}")
-        print(f"Autor: {respuesta.autor}")
+        id_ticket = int(input("ID del ticket a consultar: "))
+        respuesta = stub.ConsultarTicket(library_pb2.TicketID(id=id_ticket))
+        print(f"Cliente: {respuesta.cliente}")
+        print(f"Problema: {respuesta.problema}")
+        print(f"Idioma: {respuesta.idioma}")
+        print(f"Atendido: {'Sí' if respuesta.atendido else 'No'}")
     except ValueError:
         print("Debes ingresar un número válido.")
     except grpc.RpcError as e:
         print("Error:", e.details())
 
 
-def listar_libros(stub):
+def listar_tickets(stub):
     try:
-        print("\nListado de libros:")
-        for libro in stub.ListarLibros(library_pb2.Vacio()):
-            print(f"{libro.id} - {libro.titulo} ({libro.autor})")
+        print("\nListado de tickets:")
+        for ticket in stub.ListarTickets(library_pb2.Vacio()):
+            estado = "Atendido" if ticket.atendido else "Pendiente"
+            print(
+                f"{ticket.id} - {ticket.cliente} | {ticket.problema} | "
+                f"Idioma: {ticket.idioma} | Estado: {estado}"
+            )
     except grpc.RpcError as e:
         print("Error:", e.details())
 
 
-def registrar_libros(stub):
-    def generar_libros():
+def generar_tickets(stub):
+    def generador_tickets():
         while True:
-            id_texto = input("ID del libro (Enter para terminar): ").strip()
+            id_texto = input("ID del ticket (Enter para terminar): ").strip()
             if not id_texto:
                 break
 
             try:
-                id_libro = int(id_texto)
+                id_ticket = int(id_texto)
             except ValueError:
                 print("El ID debe ser numérico.")
                 continue
 
-            titulo = input("Título: ").strip()
-            autor = input("Autor: ").strip()
+            cliente = input("Nombre del cliente: ").strip()
+            problema = input("Problema reportado: ").strip()
+            idioma = input("Idioma del ticket (es/en/fr): ").strip().lower()
 
-            if not titulo or not autor:
-                print("Título y autor son obligatorios.")
+            if not cliente or not problema:
+                print("Cliente y problema son obligatorios.")
                 continue
 
-            yield library_pb2.Libro(
-                id=id_libro,
-                titulo=titulo,
-                autor=autor,
+            if idioma not in IDIOMAS_VALIDOS:
+                print("Idioma no válido. Solo se permite es, en o fr.")
+                continue
+
+            yield library_pb2.Ticket(
+                id=id_ticket,
+                cliente=cliente,
+                problema=problema,
+                idioma=idioma,
+                atendido=False,
             )
 
     try:
-        respuesta = stub.RegistrarLibros(generar_libros())
+        respuesta = stub.GenerarTickets(generador_tickets())
         print(f"Total registrados: {respuesta.total_registrados}")
     except grpc.RpcError as e:
         print("Error:", e.details())
 
 
-def transacciones_tiempo_real(stub):
-    def enviar_transacciones():
+def atender_tickets_tiempo_real(stub):
+    def enviar_solicitudes():
         while True:
-            tipo = input("Tipo (prestamo/devolucion, Enter para terminar): ").strip()
-            if not tipo:
+            escritorio = input("Nombre o número de escritorio (Enter para terminar): ").strip()
+            if not escritorio:
                 break
 
-            if tipo.lower() not in ("prestamo", "devolucion"):
-                print("Tipo no válido.")
+            idioma = input("Idioma que atiende el escritorio (es/en/fr): ").strip().lower()
+
+            if idioma not in IDIOMAS_VALIDOS:
+                print("Idioma no válido. Solo se permite es, en o fr.")
                 continue
 
-            try:
-                id_libro = int(input("ID del libro: ").strip())
-            except ValueError:
-                print("El ID debe ser numérico.")
-                continue
-
-            usuario = input("Usuario: ").strip()
-            if not usuario:
-                print("El usuario no puede ir vacío.")
-                continue
-
-            yield library_pb2.Transaccion(
-                tipo=tipo,
-                id_libro=id_libro,
-                usuario=usuario,
+            yield library_pb2.SolicitudEscritorio(
+                escritorio=escritorio,
+                idioma=idioma,
             )
 
     try:
-        respuestas = stub.TransaccionesTiempoReal(enviar_transacciones())
+        respuestas = stub.AtenderTicketsTiempoReal(enviar_solicitudes())
         for respuesta in respuestas:
-            print("Confirmación:", respuesta.mensaje)
+            print("Respuesta:", respuesta.mensaje)
     except grpc.RpcError as e:
         print("Error:", e.details())
 
@@ -99,23 +105,23 @@ def main():
     stub = library_pb2_grpc.BibliotecaServiceStub(canal)
 
     while True:
-        print("\n--- Menú Biblioteca ---")
-        print("1. Consultar libro")
-        print("2. Listar libros")
-        print("3. Registrar libros")
-        print("4. Transacciones en tiempo real")
+        print("\n--- Menú Call Center ---")
+        print("1. Consultar ticket")
+        print("2. Listar tickets")
+        print("3. Generar tickets")
+        print("4. Atender tickets por idioma")
         print("5. Salir")
 
         opcion = input("Selecciona una opción: ").strip()
 
         if opcion == "1":
-            consultar_libro(stub)
+            consultar_ticket(stub)
         elif opcion == "2":
-            listar_libros(stub)
+            listar_tickets(stub)
         elif opcion == "3":
-            registrar_libros(stub)
+            generar_tickets(stub)
         elif opcion == "4":
-            transacciones_tiempo_real(stub)
+            atender_tickets_tiempo_real(stub)
         elif opcion == "5":
             print("Hasta luego.")
             break
