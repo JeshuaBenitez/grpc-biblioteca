@@ -1,6 +1,9 @@
 import grpc
 import library_pb2
 import library_pb2_grpc
+import select
+import sys
+import time
 
 
 def _parse_prioridad(texto: str) -> int | None:
@@ -51,9 +54,8 @@ def crear_ticket(stub):
         print("Error:", e.details())
 
 
-def atender_siguiente(stub):
+def _atender_siguiente(stub, escritorio_id: str):
     try:
-        escritorio_id = input("ID de escritorio: ").strip() or "Escritorio-1"
         respuesta = stub.AtenderSiguiente(
             library_pb2.EscritorioRequest(escritorio_id=escritorio_id)
         )
@@ -73,7 +75,7 @@ def atender_siguiente(stub):
         print("Error:", e.details())
 
 
-def pantalla_publica(stub):
+def _consultar_pantalla_publica(stub):
     try:
         resumen = stub.ConsultarPendientes(library_pb2.Vacio())
         print("\n--- Pantalla Publica ---")
@@ -85,7 +87,7 @@ def pantalla_publica(stub):
         print("Error:", e.details())
 
 
-def listar_pendientes(stub):
+def _mostrar_lista_pendientes(stub):
     try:
         print("\nTickets pendientes (ordenados por prioridad):")
         hay_tickets = False
@@ -99,6 +101,57 @@ def listar_pendientes(stub):
             print("No hay tickets pendientes.")
     except grpc.RpcError as e:
         print("Error:", e.details())
+
+
+def _leer_comando_timeout(segundos: int) -> str | None:
+    listo, _, _ = select.select([sys.stdin], [], [], segundos)
+    if not listo:
+        return None
+    return sys.stdin.readline().strip().lower()
+
+
+def modo_escritorio(stub):
+    escritorio_id = input("ID de escritorio: ").strip() or "Escritorio-1"
+    print("\nModo escritorio activo.")
+    print("Presiona Enter para atender otro ticket o escribe 'exit' para volver al menu.")
+
+    while True:
+        comando = input(f"[{escritorio_id}] > ").strip().lower()
+        if comando == "exit":
+            print("Saliendo de modo escritorio...")
+            return
+        if comando:
+            print("Comando no valido. Usa Enter para atender o 'exit' para volver.")
+            continue
+        _atender_siguiente(stub, escritorio_id)
+
+
+def modo_pantalla_publica_tiempo_real(stub):
+    print("\nPantalla publica en tiempo real.")
+    print("Actualizacion automatica cada 2 segundos. Escribe 'exit' y Enter para volver.")
+
+    while True:
+        _consultar_pantalla_publica(stub)
+        print("[Esperando comando: 'exit' para salir | Enter para refrescar ya]", flush=True)
+        comando = _leer_comando_timeout(2)
+        if comando == "exit":
+            print("Saliendo de pantalla publica...")
+            return
+        time.sleep(0.1)
+
+
+def modo_lista_tickets_tiempo_real(stub):
+    print("\nLista de tickets en tiempo real.")
+    print("Actualizacion automatica cada 2 segundos. Escribe 'exit' y Enter para volver.")
+
+    while True:
+        _mostrar_lista_pendientes(stub)
+        print("[Esperando comando: 'exit' para salir | Enter para refrescar ya]", flush=True)
+        comando = _leer_comando_timeout(2)
+        if comando == "exit":
+            print("Saliendo de lista de tickets...")
+            return
+        time.sleep(0.1)
 
 
 def main():
@@ -119,11 +172,11 @@ def main():
         if opcion == "1":
             crear_ticket(stub)
         elif opcion == "2":
-            atender_siguiente(stub)
+            modo_escritorio(stub)
         elif opcion == "3":
-            pantalla_publica(stub)
+            modo_pantalla_publica_tiempo_real(stub)
         elif opcion == "4":
-            listar_pendientes(stub)
+            modo_lista_tickets_tiempo_real(stub)
         elif opcion == "5":
             print("Hasta luego.")
             break
