@@ -24,25 +24,29 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rlibrary.proto\x12\nbiblioteca\"\x15\n\x07LibroID\x12\n\n\x02id\x18\x01 \x01(\x05\"2\n\x05Libro\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0e\n\x06titulo\x18\x02 \x01(\t\x12\r\n\x05\x61utor\x18\x03 \x01(\t\"\x07\n\x05Vacio\",\n\x0fResumenRegistro\x12\x19\n\x11total_registrados\x18\x01 \x01(\x05\">\n\x0bTransaccion\x12\x0c\n\x04tipo\x18\x01 \x01(\t\x12\x10\n\x08id_libro\x18\x02 \x01(\x05\x12\x0f\n\x07usuario\x18\x03 \x01(\t\"\x1f\n\x0c\x43onfirmacion\x12\x0f\n\x07mensaje\x18\x01 \x01(\t2\x9c\x02\n\x11\x42ibliotecaService\x12\x38\n\x0e\x43onsultarLibro\x12\x13.biblioteca.LibroID\x1a\x11.biblioteca.Libro\x12\x36\n\x0cListarLibros\x12\x11.biblioteca.Vacio\x1a\x11.biblioteca.Libro0\x01\x12\x43\n\x0fRegistrarLibros\x12\x11.biblioteca.Libro\x1a\x1b.biblioteca.ResumenRegistro(\x01\x12P\n\x17TransaccionesTiempoReal\x12\x17.biblioteca.Transaccion\x1a\x18.biblioteca.Confirmacion(\x01\x30\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rlibrary.proto\x12\x0b\x63onsultorio\"8\n\x0eSolicitudTurno\x12\x10\n\x08paciente\x18\x01 \x01(\t\x12\x14\n\x0c\x65specialidad\x18\x02 \x01(\t\"e\n\x06Ticket\x12\x0e\n\x06\x63odigo\x18\x01 \x01(\t\x12\x10\n\x08paciente\x18\x02 \x01(\t\x12\x14\n\x0c\x65specialidad\x18\x03 \x01(\t\x12\x10\n\x08posicion\x18\x04 \x01(\x05\x12\x11\n\tcreado_en\x18\x05 \x01(\x03\"R\n\x0fResumenRegistro\x12\x19\n\x11total_registrados\x18\x01 \x01(\x05\x12$\n\x07tickets\x18\x02 \x03(\x0b\x32\x13.consultorio.Ticket\"@\n\x0fPantallaRequest\x12\x15\n\rincluir_todas\x18\x01 \x01(\x08\x12\x16\n\x0e\x65specialidades\x18\x02 \x03(\t\"Z\n\x0cTurnoLlamado\x12\x0e\n\x06\x63odigo\x18\x01 \x01(\t\x12\x10\n\x08paciente\x18\x02 \x01(\t\x12\x14\n\x0c\x65specialidad\x18\x03 \x01(\t\x12\x12\n\nllamado_en\x18\x04 \x01(\x03\"\xb4\x01\n\x0e\x45stadoPantalla\x12\x33\n\x10medicina_general\x18\x01 \x03(\x0b\x32\x19.consultorio.TurnoLlamado\x12,\n\tpediatria\x18\x02 \x03(\x0b\x32\x19.consultorio.TurnoLlamado\x12.\n\x0bodontologia\x18\x03 \x03(\x0b\x32\x19.consultorio.TurnoLlamado\x12\x0f\n\x07version\x18\x04 \x01(\x03\"{\n\x10\x45ventoEscritorio\x12\x15\n\rescritorio_id\x18\x01 \x01(\t\x12\x14\n\x0c\x65specialidad\x18\x02 \x01(\t\x12\x0e\n\x06\x61\x63\x63ion\x18\x03 \x01(\t\x12\x15\n\rticket_codigo\x18\x04 \x01(\t\x12\x13\n\x0bobservacion\x18\x05 \x01(\t\"m\n\x0e\x45ventoServidor\x12\x0c\n\x04tipo\x18\x01 \x01(\t\x12\x0f\n\x07mensaje\x18\x02 \x01(\t\x12(\n\x05turno\x18\x03 \x01(\x0b\x32\x19.consultorio.TurnoLlamado\x12\x12\n\npendientes\x18\x04 \x01(\x05\x32\xcc\x02\n\x12\x43onsultorioService\x12@\n\x0cGenerarTurno\x12\x1b.consultorio.SolicitudTurno\x1a\x13.consultorio.Ticket\x12R\n\x13RegistrarTurnosLote\x12\x1b.consultorio.SolicitudTurno\x1a\x1c.consultorio.ResumenRegistro(\x01\x12J\n\x0bVerPantalla\x12\x1c.consultorio.PantallaRequest\x1a\x1b.consultorio.EstadoPantalla0\x01\x12T\n\x12\x41tencionTiempoReal\x12\x1d.consultorio.EventoEscritorio\x1a\x1b.consultorio.EventoServidor(\x01\x30\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'library_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_LIBROID']._serialized_start=29
-  _globals['_LIBROID']._serialized_end=50
-  _globals['_LIBRO']._serialized_start=52
-  _globals['_LIBRO']._serialized_end=102
-  _globals['_VACIO']._serialized_start=104
-  _globals['_VACIO']._serialized_end=111
-  _globals['_RESUMENREGISTRO']._serialized_start=113
-  _globals['_RESUMENREGISTRO']._serialized_end=157
-  _globals['_TRANSACCION']._serialized_start=159
-  _globals['_TRANSACCION']._serialized_end=221
-  _globals['_CONFIRMACION']._serialized_start=223
-  _globals['_CONFIRMACION']._serialized_end=254
-  _globals['_BIBLIOTECASERVICE']._serialized_start=257
-  _globals['_BIBLIOTECASERVICE']._serialized_end=541
+  _globals['_SOLICITUDTURNO']._serialized_start=30
+  _globals['_SOLICITUDTURNO']._serialized_end=86
+  _globals['_TICKET']._serialized_start=88
+  _globals['_TICKET']._serialized_end=189
+  _globals['_RESUMENREGISTRO']._serialized_start=191
+  _globals['_RESUMENREGISTRO']._serialized_end=273
+  _globals['_PANTALLAREQUEST']._serialized_start=275
+  _globals['_PANTALLAREQUEST']._serialized_end=339
+  _globals['_TURNOLLAMADO']._serialized_start=341
+  _globals['_TURNOLLAMADO']._serialized_end=431
+  _globals['_ESTADOPANTALLA']._serialized_start=434
+  _globals['_ESTADOPANTALLA']._serialized_end=614
+  _globals['_EVENTOESCRITORIO']._serialized_start=616
+  _globals['_EVENTOESCRITORIO']._serialized_end=739
+  _globals['_EVENTOSERVIDOR']._serialized_start=741
+  _globals['_EVENTOSERVIDOR']._serialized_end=850
+  _globals['_CONSULTORIOSERVICE']._serialized_start=853
+  _globals['_CONSULTORIOSERVICE']._serialized_end=1185
 # @@protoc_insertion_point(module_scope)

@@ -1,0 +1,17 @@
+{
+  "consecutivos": {
+    "medicina_general": 0,
+    "pediatria": 0,
+    "odontologia": 0
+  },
+  "colas": {
+    "medicina_general": [],
+    "pediatria": [],
+    "odontologia": []
+  },
+  "ultimos_llamados": {
+    "medicina_general": [],
+    "pediatria": [],
+    "odontologia": []
+  }
+}

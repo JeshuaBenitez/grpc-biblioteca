@@ -1,36 +1,62 @@
 syntax = "proto3";
 
-package biblioteca;
+package consultorio;
 
-service BibliotecaService {
-  rpc ConsultarLibro(LibroID) returns (Libro);
-  rpc ListarLibros(Vacio) returns (stream Libro);
-  rpc RegistrarLibros(stream Libro) returns (ResumenRegistro);
-  rpc TransaccionesTiempoReal(stream Transaccion) returns (stream Confirmacion);
+service ConsultorioService {
+  rpc GenerarTurno(SolicitudTurno) returns (Ticket);
+  rpc RegistrarTurnosLote(stream SolicitudTurno) returns (ResumenRegistro);
+  rpc VerPantalla(PantallaRequest) returns (stream EstadoPantalla);
+  rpc AtencionTiempoReal(stream EventoEscritorio) returns (stream EventoServidor);
 }
 
-message LibroID {
-  int32 id = 1;
+message SolicitudTurno {
+  string paciente = 1;
+  string especialidad = 2;
 }
 
-message Libro {
-  int32 id = 1;
-  string titulo = 2;
-  string autor = 3;
+message Ticket {
+  string codigo = 1;
+  string paciente = 2;
+  string especialidad = 3;
+  int32 posicion = 4;
+  int64 creado_en = 5;
 }
-
-message Vacio {}
 
 message ResumenRegistro {
   int32 total_registrados = 1;
+  repeated Ticket tickets = 2;
 }
 
-message Transaccion {
+message PantallaRequest {
+  bool incluir_todas = 1;
+  repeated string especialidades = 2;
+}
+
+message TurnoLlamado {
+  string codigo = 1;
+  string paciente = 2;
+  string especialidad = 3;
+  int64 llamado_en = 4;
+}
+
+message EstadoPantalla {
+  repeated TurnoLlamado medicina_general = 1;
+  repeated TurnoLlamado pediatria = 2;
+  repeated TurnoLlamado odontologia = 3;
+  int64 version = 4;
+}
+
+message EventoEscritorio {
+  string escritorio_id = 1;
+  string especialidad = 2;
+  string accion = 3;
+  string ticket_codigo = 4;
+  string observacion = 5;
+}
+
+message EventoServidor {
   string tipo = 1;
-  int32 id_libro = 2;
-  string usuario = 3;
-}
-
-message Confirmacion {
-  string mensaje = 1;
+  string mensaje = 2;
+  TurnoLlamado turno = 3;
+  int32 pendientes = 4;
 }

@@ -1,8 +1,10 @@
 from concurrent import futures
 import json
+import logging
 import os
 import threading
 import time
+from collections import deque
 
 import grpc
 import library_pb2
@@ -10,111 +12,283 @@ import library_pb2_grpc
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LIBROS_PATH = os.path.normpath(os.path.join(BASE_DIR, "../data/libros.json"))
+ESTADO_PATH = os.path.normpath(os.path.join(BASE_DIR, "../data/consultorio_estado.json"))
+LOG_PATH = os.path.normpath(os.path.join(BASE_DIR, "logs/consultorio.log"))
+ESPECIALIDADES = ("medicina_general", "pediatria", "odontologia")
+PREFIJOS = {
+    "medicina_general": "MG",
+    "pediatria": "PD",
+    "odontologia": "OD",
+}
 
-lock = threading.Lock()
+os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="[LOG] %(asctime)s - %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_PATH, encoding="utf-8"),
+        logging.StreamHandler(),
+    ],
+)
 
 
-def cargar_libros() -> dict[int, dict]:
-    """Carga el JSON y lo convierte a un diccionario indexado por id."""
-    if not os.path.exists(LIBROS_PATH):
-        return {}
-
-    with lock:
-        with open(LIBROS_PATH, "r", encoding="utf-8") as f:
-            libros_lista = json.load(f)
-
-    return {libro["id"]: libro for libro in libros_lista}
+def _estado_inicial() -> dict:
+    return {
+        "consecutivos": {esp: 0 for esp in ESPECIALIDADES},
+        "colas": {esp: [] for esp in ESPECIALIDADES},
+        "ultimos_llamados": {esp: [] for esp in ESPECIALIDADES},
+    }
 
 
-def guardar_libros(libros_dict: dict[int, dict]) -> None:
-    """Guarda el diccionario en el JSON."""
-    with lock:
-        with open(LIBROS_PATH, "w", encoding="utf-8") as f:
-            json.dump(list(libros_dict.values()), f, indent=2, ensure_ascii=False)
+def _normalizar_especialidad(nombre: str) -> str:
+    return (nombre or "").strip().lower().replace(" ", "_")
+
+
+def _ticket_a_turno_llamado(ticket: dict, llamado_en: int | None = None) -> library_pb2.TurnoLlamado:
+    return library_pb2.TurnoLlamado(
+        codigo=ticket["codigo"],
+        paciente=ticket["paciente"],
+        especialidad=ticket["especialidad"],
+        llamado_en=llamado_en if llamado_en is not None else int(time.time()),
+    )
+
+
+class EstadoConsultorio:
+    def __init__(self, estado_path: str):
+        self.estado_path = estado_path
+        self.lock = threading.Lock()
+        self.condicion = threading.Condition(self.lock)
+        self.version = 0
+        self.consecutivos = {esp: 0 for esp in ESPECIALIDADES}
+        self.colas = {esp: deque() for esp in ESPECIALIDADES}
+        self.ultimos_llamados = {esp: deque(maxlen=3) for esp in ESPECIALIDADES}
+        self._cargar_desde_json()
+
+    def _cargar_desde_json(self) -> None:
+        if not os.path.exists(self.estado_path):
+            self._guardar_en_json(_estado_inicial())
+
+        with open(self.estado_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        for esp in ESPECIALIDADES:
+            self.consecutivos[esp] = int(data.get("consecutivos", {}).get(esp, 0))
+            self.colas[esp] = deque(data.get("colas", {}).get(esp, []))
+            self.ultimos_llamados[esp] = deque(data.get("ultimos_llamados", {}).get(esp, []), maxlen=3)
+
+    def _serializar_estado(self) -> dict:
+        return {
+            "consecutivos": self.consecutivos,
+            "colas": {esp: list(self.colas[esp]) for esp in ESPECIALIDADES},
+            "ultimos_llamados": {esp: list(self.ultimos_llamados[esp]) for esp in ESPECIALIDADES},
+        }
+
+    def _guardar_en_json(self, data: dict | None = None) -> None:
+        payload = data if data is not None else self._serializar_estado()
+        with open(self.estado_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+
+    def _crear_ticket(self, paciente: str, especialidad: str) -> dict:
+        self.consecutivos[especialidad] += 1
+        numero = self.consecutivos[especialidad]
+        codigo = f"{PREFIJOS[especialidad]}-{numero:03d}"
+        ticket = {
+            "codigo": codigo,
+            "paciente": paciente,
+            "especialidad": especialidad,
+            "posicion": len(self.colas[especialidad]) + 1,
+            "creado_en": int(time.time()),
+        }
+        self.colas[especialidad].append(ticket)
+        return ticket
+
+    def generar_turno(self, paciente: str, especialidad: str) -> dict:
+        with self.condicion:
+            ticket = self._crear_ticket(paciente=paciente, especialidad=especialidad)
+            self.version += 1
+            self._guardar_en_json()
+            self.condicion.notify_all()
+            return ticket
+
+    def registrar_lote(self, solicitudes: list[tuple[str, str]]) -> list[dict]:
+        creados = []
+        with self.condicion:
+            for paciente, especialidad in solicitudes:
+                creados.append(self._crear_ticket(paciente=paciente, especialidad=especialidad))
+            if creados:
+                self.version += 1
+                self._guardar_en_json()
+                self.condicion.notify_all()
+        return creados
+
+    def llamar_siguiente(self, especialidad: str) -> tuple[dict | None, int]:
+        with self.condicion:
+            if not self.colas[especialidad]:
+                return None, 0
+
+            ticket = self.colas[especialidad].popleft()
+            llamado = {
+                "codigo": ticket["codigo"],
+                "paciente": ticket["paciente"],
+                "especialidad": especialidad,
+                "llamado_en": int(time.time()),
+            }
+            self.ultimos_llamados[especialidad].append(llamado)
+            self.version += 1
+            self._guardar_en_json()
+            self.condicion.notify_all()
+            return llamado, len(self.colas[especialidad])
+
+    def estado_pantalla(self) -> tuple[library_pb2.EstadoPantalla, int]:
+        with self.lock:
+            payload = {
+                "medicina_general": [
+                    _ticket_a_turno_llamado(item, item.get("llamado_en"))
+                    for item in self.ultimos_llamados["medicina_general"]
+                ],
+                "pediatria": [
+                    _ticket_a_turno_llamado(item, item.get("llamado_en"))
+                    for item in self.ultimos_llamados["pediatria"]
+                ],
+                "odontologia": [
+                    _ticket_a_turno_llamado(item, item.get("llamado_en"))
+                    for item in self.ultimos_llamados["odontologia"]
+                ],
+                "version": self.version,
+            }
+            return library_pb2.EstadoPantalla(**payload), self.version
+
+    def esperar_cambio(self, ultima_version: int, timeout: float = 15.0) -> int:
+        with self.condicion:
+            self.condicion.wait_for(lambda: self.version != ultima_version, timeout=timeout)
+            return self.version
 
 
 def log_operacion(mensaje: str) -> None:
-    print(f"[LOG] {time.strftime('%Y-%m-%d %H:%M:%S')} - {mensaje}")
+    logging.info(mensaje)
 
 
-class BibliotecaServiceServicer(library_pb2_grpc.BibliotecaServiceServicer):
-    def ConsultarLibro(self, request, context):
-        """Unary RPC: recibe un ID y devuelve un libro."""
-        libros = cargar_libros()
-        libro = libros.get(request.id)
+estado = EstadoConsultorio(ESTADO_PATH)
 
-        if libro is None:
-            log_operacion(f"Consulta fallida para libro ID {request.id}")
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details("Libro no encontrado")
-            return library_pb2.Libro()
 
-        log_operacion(f"Consulta de libro ID {request.id}")
-        return library_pb2.Libro(
-            id=libro["id"],
-            titulo=libro["titulo"],
-            autor=libro["autor"],
-        )
+class ConsultorioServiceServicer(library_pb2_grpc.ConsultorioServiceServicer):
+    def GenerarTurno(self, request, context):
+        paciente = request.paciente.strip()
+        especialidad = _normalizar_especialidad(request.especialidad)
 
-    def ListarLibros(self, request, context):
-        """Server Streaming RPC: envía todos los libros uno por uno."""
-        libros = cargar_libros()
+        if not paciente:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("El nombre del paciente es obligatorio")
+            return library_pb2.Ticket()
 
-        for libro in libros.values():
-            log_operacion(f"Enviando libro ID {libro['id']}")
-            yield library_pb2.Libro(
-                id=libro["id"],
-                titulo=libro["titulo"],
-                autor=libro["autor"],
+        if especialidad not in ESPECIALIDADES:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("Especialidad inválida")
+            return library_pb2.Ticket()
+
+        ticket = estado.generar_turno(paciente=paciente, especialidad=especialidad)
+        log_operacion(f"Turno generado {ticket['codigo']} para {paciente} en {especialidad}")
+        return library_pb2.Ticket(**ticket)
+
+    def RegistrarTurnosLote(self, request_iterator, context):
+        solicitudes = []
+        for solicitud in request_iterator:
+            paciente = solicitud.paciente.strip()
+            especialidad = _normalizar_especialidad(solicitud.especialidad)
+            if not paciente or especialidad not in ESPECIALIDADES:
+                continue
+            solicitudes.append((paciente, especialidad))
+
+        tickets = estado.registrar_lote(solicitudes)
+        for ticket in tickets:
+            log_operacion(
+                f"Turno generado por lote {ticket['codigo']} para {ticket['paciente']} en {ticket['especialidad']}"
             )
 
-    def RegistrarLibros(self, request_iterator, context):
-        """Client Streaming RPC: recibe varios libros y responde con un resumen."""
-        libros = cargar_libros()
-        total = 0
+        return library_pb2.ResumenRegistro(
+            total_registrados=len(tickets),
+            tickets=[library_pb2.Ticket(**ticket) for ticket in tickets],
+        )
 
-        for libro in request_iterator:
-            libros[libro.id] = {
-                "id": libro.id,
-                "titulo": libro.titulo,
-                "autor": libro.autor,
-            }
-            total += 1
-            log_operacion(f"Libro registrado ID {libro.id} - {libro.titulo}")
+    def VerPantalla(self, request, context):
+        ultima_version = -1
+        while context.is_active():
+            snapshot, version = estado.estado_pantalla()
+            if version != ultima_version:
+                ultima_version = version
+                if request.incluir_todas:
+                    yield snapshot
+                else:
+                    filtro = set(_normalizar_especialidad(e) for e in request.especialidades)
+                    yield library_pb2.EstadoPantalla(
+                        medicina_general=snapshot.medicina_general if "medicina_general" in filtro else [],
+                        pediatria=snapshot.pediatria if "pediatria" in filtro else [],
+                        odontologia=snapshot.odontologia if "odontologia" in filtro else [],
+                        version=snapshot.version,
+                    )
+            estado.esperar_cambio(ultima_version)
 
-        guardar_libros(libros)
+    def AtencionTiempoReal(self, request_iterator, context):
+        for evento in request_iterator:
+            escritorio = evento.escritorio_id.strip() or "escritorio"
+            especialidad = _normalizar_especialidad(evento.especialidad)
+            accion = evento.accion.strip().lower()
 
-        return library_pb2.ResumenRegistro(total_registrados=total)
+            if especialidad not in ESPECIALIDADES:
+                yield library_pb2.EventoServidor(
+                    tipo="error",
+                    mensaje=f"Especialidad inválida para {escritorio}",
+                    pendientes=0,
+                )
+                continue
 
-    def TransaccionesTiempoReal(self, request_iterator, context):
-        """Bidirectional Streaming RPC: recibe transacciones y responde confirmaciones."""
-        for transaccion in request_iterator:
-            tipo = transaccion.tipo.strip().lower()
-            id_libro = transaccion.id_libro
-            usuario = transaccion.usuario.strip()
+            if accion == "solicitar_siguiente":
+                llamado, pendientes = estado.llamar_siguiente(especialidad)
+                if llamado is None:
+                    mensaje = f"{escritorio}: no hay turnos pendientes en {especialidad}"
+                    log_operacion(mensaje)
+                    yield library_pb2.EventoServidor(
+                        tipo="sin_turnos",
+                        mensaje=mensaje,
+                        pendientes=pendientes,
+                    )
+                    continue
 
-            if tipo == "prestamo":
-                mensaje = f"{usuario} ha tomado prestado el libro {id_libro}"
-            elif tipo == "devolucion":
-                mensaje = f"{usuario} ha devuelto el libro {id_libro}"
+                mensaje = (
+                    f"{escritorio} llama {llamado['codigo']} - {llamado['paciente']} en {especialidad}"
+                )
+                log_operacion(mensaje)
+                yield library_pb2.EventoServidor(
+                    tipo="turno_llamado",
+                    mensaje=mensaje,
+                    turno=_ticket_a_turno_llamado(llamado, llamado["llamado_en"]),
+                    pendientes=pendientes,
+                )
+                continue
+
+            if accion == "ping":
+                mensaje = f"{escritorio} conectado a {especialidad}"
+                log_operacion(mensaje)
+                yield library_pb2.EventoServidor(tipo="ok", mensaje=mensaje)
             else:
-                mensaje = f"Transacción desconocida para el libro {id_libro}"
-
-            log_operacion(mensaje)
-            yield library_pb2.Confirmacion(mensaje=mensaje)
+                yield library_pb2.EventoServidor(
+                    tipo="error",
+                    mensaje=f"Acción desconocida: {accion}",
+                    pendientes=0,
+                )
 
 
 def servir():
     servidor = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    library_pb2_grpc.add_BibliotecaServiceServicer_to_server(
-        BibliotecaServiceServicer(),
+    library_pb2_grpc.add_ConsultorioServiceServicer_to_server(
+        ConsultorioServiceServicer(),
         servidor,
     )
 
     servidor.add_insecure_port("[::]:50052")
     servidor.start()
-    print("Servidor Biblioteca gRPC escuchando en puerto 50052...")
+    print("Servidor Consultorio gRPC escuchando en puerto 50052...")
+    log_operacion(f"Servidor iniciado. Estado: {ESTADO_PATH}")
     servidor.wait_for_termination()
 
 
